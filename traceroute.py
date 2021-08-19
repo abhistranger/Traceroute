@@ -1,12 +1,8 @@
 import socket
-import random
 import time
 import sys
 from scapy.all import *
 import matplotlib.pyplot as plt
-
-#Icmp_code = socket.getprotobyname('icpm')
-
 
 if(len(sys.argv)) <= 1:
     # no domain name provided
@@ -28,15 +24,18 @@ except:
 
 max_hops = 30
 RTT_list = []
-hop_list = [j for j in range(1, max_hops+1)]
+hop_used = 0
+
+print("Tracing route to "+domain_name+" ["+ip_add+"]")
+print("maximum hopes of "+str(max_hops)+":")
 
 for i in range(1, max_hops+1):
     # create packet
-    packet = IP(dst=ip_add, ttl=i, id=RandShort())
+    packet = IP(dst=ip_add, ttl=i)
 
     ts = time.time()
     # send and get reply back
-    reply = sr1(packet/ICMP(), retry=1, timeout=3, verbose=0)
+    reply = sr1(packet/ICMP(), retry=3, timeout=2, verbose=0)
     te = time.time()
 
     if reply:
@@ -45,7 +44,8 @@ for i in range(1, max_hops+1):
         print(reply.src)
         if reply and reply.src == ip_add:
             # Reached destination
-            print("Done routing!",)
+            hop_used = i
+            print("Trace Complete!",)
             break
     else:
         # No reply
@@ -53,9 +53,13 @@ for i in range(1, max_hops+1):
         print("{:2}     *          ".format(i), end='')
         print("Request timed out.")
 
+hop_list = [j for j in range(1, hop_used+1)]
 plt.figure(figsize=(12, 6))
 plt.plot(hop_list, RTT_list, alpha=0.8, linewidth=2, marker='o')
 plt.xlabel('Hop Number')
 plt.ylabel('RTT (ms)')
-plt.legend()
-plt.savefig('a1.png')
+ax = plt.gca()
+ax.set_xticks(hop_list)
+ax.set_xticklabels(hop_list)
+# plt.legend()
+plt.savefig('a1_'+domain_name+'.png')
